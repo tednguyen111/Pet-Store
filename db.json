@@ -1,0 +1,196 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Hạt khô Royal Canin Mini Adult",
+      "category": "dog",
+      "image": "images/royal_cacnin_ch___1791182725496.jpg",
+      "description": "Thức ăn hạt khô cao cấp dành cho chó nhỏ trưởng thành. Giàu protein, hỗ trợ tiêu hoá và sức khoẻ răng miệng.",
+      "weight": "2kg",
+      "price": 350000,
+      "stock": 42
+    },
+    {
+      "id": 2,
+      "name": "Hạt mèo Whiskas Tuna",
+      "category": "cat",
+      "image": "images/m__o_1_1791182773780.webp",
+      "description": "Hạt khô vị cá ngừ cho mèo trưởng thành. Cân bằng dinh dưỡng, hỗ trợ lông mượt và sức đề kháng.",
+      "weight": "1.2kg",
+      "price": 175000,
+      "stock": 97
+    },
+    {
+      "id": 3,
+      "name": "Pate mèo Whiskas Salmon",
+      "category": "cat",
+      "image": "images/___nh_m__o_1791182825312.jpg",
+      "description": "Pate vị cá hồi thơm ngon, mềm mịn. Phù hợp mèo mọi lứa tuổi.",
+      "weight": "85g × 12 gói",
+      "price": 120000,
+      "stock": 0
+    },
+    {
+      "id": 4,
+      "name": "Hạt chó Pedigree Adult Beef",
+      "category": "dog",
+      "image": "images/___nh_ch___1_1791182857241.jpg",
+      "description": "Hạt khô vị thịt bò cho chó trưởng thành mọi giống. Bổ sung Omega 3&6, tốt cho xương khớp.",
+      "weight": "3kg",
+      "price": 280000,
+      "stock": 14
+    },
+    {
+      "id": 5,
+      "name": "Thức ăn cho thỏ Oxbow",
+      "category": "other",
+      "image": "images/co-alfalfa-oxbow-3_1791182910563.jpg",
+      "description": "Pellets dinh dưỡng cho thỏ trưởng thành. Giàu chất xơ, hỗ trợ hệ tiêu hoá khoẻ mạnh.",
+      "weight": "1.13kg",
+      "price": 290000,
+      "stock": 20
+    },
+    {
+      "id": 6,
+      "name": "Hạt mèo Me-O Persian",
+      "category": "cat",
+      "image": "images/images_1791182932416.jpg",
+      "description": "Thiết kế riêng cho mèo lông dài giống Ba Tư. Kiểm soát búi lông, duy trì lông bóng mượt.",
+      "weight": "1.2kg",
+      "price": 155000,
+      "stock": 33
+    },
+    {
+      "id": 7,
+      "name": "Hạt chó Ganador Puppy",
+      "category": "dog",
+      "image": "images/ganador-puppy.jpg",
+      "description": "Hạt dành cho chó con dưới 12 tháng. Giàu canxi và vitamin D hỗ trợ phát triển xương.",
+      "weight": "400g",
+      "price": 85000,
+      "stock": 60
+    },
+    {
+      "id": 8,
+      "name": "Thức ăn cho chim Adult",
+      "category": "other",
+      "image": "images/bird-food.jpg",
+      "description": "Thức ăn viên cho vẹt đuôi dài và vẹt Cockatiel. Bổ sung vitamin và khoáng chất tổng hợp.",
+      "weight": "60000g",
+      "price": 1000000,
+      "stock": 8
+    }
+  ],
+  "settings": {
+    "shopName": "Pet Store",
+    "logo": "images/___nh_1_1791183898359.jpg",
+    "banner": "images/10827091_1791188247270.jpg",
+    "qrCode": "images/screenshot_2026-10-05_150513_1791188247289.png",
+    "bankName": "Vietcombank",
+    "bankAccount": "1234 5678 9012",
+    "bankHolder": "PETSTORE SHOP"
+  },
+  "orders": [
+    {
+      "id": 1791182492595,
+      "createdAt": "2026-10-05T06:41:32.595Z",
+      "customer": {
+        "name": "Nguyen Van A",
+        "phone": "0901234567",
+        "address": "123 Nguyen Trai, Q1, HCM"
+      },
+      "items": [
+        {
+          "productId": 1,
+          "name": "Hạt khô Royal Canin Mini Adult",
+          "unitPrice": 350000,
+          "quantity": 2,
+          "lineTotal": 700000
+        },
+        {
+          "productId": 7,
+          "name": "Hạt chó Ganador Puppy",
+          "unitPrice": 85000,
+          "quantity": 1,
+          "lineTotal": 85000
+        }
+      ],
+      "total": 785000,
+      "status": "pending_payment"
+    },
+    {
+      "id": 1791182508177,
+      "createdAt": "2026-10-05T06:41:48.177Z",
+      "customer": {
+        "name": "Nguyen Van A",
+        "phone": "0901234567",
+        "address": "123 Nguyen Trai"
+      },
+      "items": [
+        {
+          "productId": 1,
+          "name": "Hạt khô Royal Canin Mini Adult",
+          "unitPrice": 350000,
+          "quantity": 2,
+          "lineTotal": 700000
+        },
+        {
+          "productId": 7,
+          "name": "Hạt chó Ganador Puppy",
+          "unitPrice": 85000,
+          "quantity": 1,
+          "lineTotal": 85000
+        }
+      ],
+      "total": 785000,
+      "status": "pending_payment"
+    },
+    {
+      "id": 1791182524044,
+      "createdAt": "2026-10-05T06:42:04.044Z",
+      "customer": {
+        "name": "Nguyen Van A",
+        "phone": "0901234567",
+        "address": "123 Nguyen Trai"
+      },
+      "items": [
+        {
+          "productId": 1,
+          "name": "Hạt khô Royal Canin Mini Adult",
+          "unitPrice": 350000,
+          "quantity": 2,
+          "lineTotal": 700000
+        },
+        {
+          "productId": 7,
+          "name": "Hạt chó Ganador Puppy",
+          "unitPrice": 85000,
+          "quantity": 1,
+          "lineTotal": 85000
+        }
+      ],
+      "total": 785000,
+      "status": "pending_payment"
+    },
+    {
+      "id": 1791188281943357,
+      "createdAt": "2026-10-05T08:18:01.943Z",
+      "customer": {
+        "name": "Nguyễn Tuấn Đạt",
+        "phone": "0335692982",
+        "address": "72 Trần Hưng Đạo, Hà Nội"
+      },
+      "items": [
+        {
+          "productId": 4,
+          "name": "Hạt chó Pedigree Adult Beef",
+          "unitPrice": 280000,
+          "quantity": 1,
+          "lineTotal": 280000
+        }
+      ],
+      "total": 280000,
+      "status": "pending_payment"
+    }
+  ]
+}

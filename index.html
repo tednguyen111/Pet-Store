@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PetFood Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary:        '#E8622A',
+            'primary-dark': '#C84E1A',
+            surface:        '#FFF8F4',
+            muted:          '#F3F4F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Image placeholder ── */
+    .img-placeholder {
+      background: #e5e7eb;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #9ca3af; font-size: 0.7rem;
+      font-family: monospace; text-align: center; gap: 4px;
+    }
+    .img-placeholder::before {
+      content: '';
+      display: block; width: 32px; height: 32px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' stroke-width='1.5'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5' stroke-width='1.5'/%3E%3Cpath stroke-width='1.5' d='M21 15l-5-5L5 21'/%3E%3C/svg%3E") center/contain no-repeat;
+    }
+
+    /* ── Drawer ── */
+    .drawer-overlay, .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 40; display: none;
+    }
+    .drawer-overlay.open, .modal-overlay.open { display: block; }
+
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 420px; max-width: 100vw;
+      background: #fff; z-index: 50;
+      transform: translateX(100%);
+      transition: transform .3s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+
+    /* ── Modal ── */
+    .modal {
+      position: fixed; inset: 0; z-index: 60;
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 1rem;
+      width: 100%; max-height: 90vh; overflow-y: auto;
+      position: relative; box-shadow: 0 25px 50px rgba(0,0,0,.25);
+    }
+
+    /* ── Badges ── */
+    .badge-in  { background:#dcfce7; color:#15803d; }
+    .badge-out { background:#f3f4f6; color:#6b7280; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:99px; }
+  </style>
+</head>
+<body class="bg-surface text-gray-800 font-sans">
+
+<!-- ════════════════════════════════
+     HEADER
+════════════════════════════════ -->
+<header class="sticky top-0 z-30 bg-primary shadow-md">
+  <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+
+    <a href="/" class="flex items-center gap-2 flex-shrink-0">
+      <!-- Logo: circle, 44×44px. Replaced by loadSettings() when logo is set -->
+      <div id="logo-slot"
+        class="w-11 h-11 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- Nav sat Logo -->
+    <nav class="flex items-center gap-8 text-white font-semibold">
+      <a href="/" class="text-lg hover:opacity-80 transition">Trang chủ</a>
+      <a href="#products" class="text-lg hover:opacity-80 transition">Sản phẩm</a>
+    </nav>
+
+    <button onclick="openCart()" class="relative text-white hover:opacity-80 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 3h2l.4 2M7 13h10l4-10H5.4M7 13l-1.4 7h12.8M7 13H5.4M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
+      </svg>
+      <span id="cart-count"
+        class="absolute -top-2 -right-2 bg-white text-primary text-[10px] font-bold
+               rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ════════════════════════════════
+     HERO BANNER
+════════════════════════════════ -->
+<section class="max-w-7xl mx-auto px-4 mt-6">
+  <!-- IMAGE SLOT: hero-banner.jpg (1400×400px recommended) -->
+  <div id="banner-slot" class="img-placeholder w-full h-56 rounded-2xl text-sm">
+    hero-banner.jpg<br/><span class="text-xs">Recommended: 1400×400px</span>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     CATEGORY TABS  (US-01)
+════════════════════════════════ -->
+<section id="products" class="max-w-7xl mx-auto px-4 mt-8">
+  <div class="flex gap-3 flex-wrap">
+    <button onclick="filterCategory('all')"
+      class="category-tab px-5 py-2 rounded-full text-sm font-semibold border-2
+             border-primary bg-primary text-white transition"
+      data-cat="all">Tất cả</button>
+    <button onclick="filterCategory('dog')"
+      class="category-tab px-5 py-2 rounded-full text-sm font-semibold border-2
+             border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition"
+      data-cat="dog">Chó</button>
+    <button onclick="filterCategory('cat')"
+      class="category-tab px-5 py-2 rounded-full text-sm font-semibold border-2
+             border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition"
+      data-cat="cat">Mèo</button>
+    <button onclick="filterCategory('other')"
+      class="category-tab px-5 py-2 rounded-full text-sm font-semibold border-2
+             border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition"
+      data-cat="other">Other</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     PRODUCT GRID  (US-01, US-02)
+════════════════════════════════ -->
+<section class="max-w-7xl mx-auto px-4 mt-6 pb-16">
+
+  <!-- Loading skeleton -->
+  <div id="loading-state" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+    <div class="bg-white rounded-2xl shadow-sm animate-pulse h-64"></div>
+    <div class="bg-white rounded-2xl shadow-sm animate-pulse h-64"></div>
+    <div class="bg-white rounded-2xl shadow-sm animate-pulse h-64"></div>
+    <div class="bg-white rounded-2xl shadow-sm animate-pulse h-64"></div>
+  </div>
+
+  <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 hidden"></div>
+
+  <!-- Empty state (AC-01.5) -->
+  <div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-gray-400 gap-3">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+    </svg>
+    <p class="text-base">Không có sản phẩm nào trong danh mục này.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     PRODUCT DETAIL MODAL  (US-02)
+════════════════════════════════ -->
+<div id="detail-overlay" class="modal-overlay" onclick="closeDetail()"></div>
+<div id="detail-modal" class="modal">
+  <div class="modal-box max-w-2xl w-full" onclick="event.stopPropagation()">
+    <button onclick="closeDetail()"
+      class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+    <div class="flex flex-col md:flex-row gap-6 p-6">
+      <div id="detail-image" class="md:w-1/2 flex-shrink-0"></div>
+      <div class="flex-1 flex flex-col gap-3">
+        <div id="detail-badge"></div>
+        <h2 id="detail-name"        class="text-xl font-bold text-gray-900"></h2>
+        <p  id="detail-description" class="text-sm text-gray-500 leading-relaxed"></p>
+        <div class="grid grid-cols-2 gap-2 text-sm mt-1">
+          <div class="bg-muted rounded-lg p-3">
+            <p class="text-gray-400 text-xs mb-0.5">Trọng lượng</p>
+            <p id="detail-weight" class="font-semibold"></p>
+          </div>
+          <div class="bg-muted rounded-lg p-3">
+            <p class="text-gray-400 text-xs mb-0.5">Tồn kho</p>
+            <p id="detail-stock"  class="font-semibold"></p>
+          </div>
+        </div>
+        <div id="detail-price" class="text-2xl font-bold text-primary mt-1"></div>
+        <button id="detail-add-btn" onclick="addToCartFromDetail()"
+          class="mt-auto w-full py-3 rounded-xl font-semibold text-white bg-primary
+                 hover:bg-primary-dark transition disabled:opacity-40 disabled:cursor-not-allowed">
+          Thêm vào giỏ
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CART DRAWER  (US-03, US-04)
+════════════════════════════════ -->
+<div id="cart-overlay" class="drawer-overlay" onclick="closeCart()"></div>
+<aside id="cart-drawer" class="drawer shadow-2xl">
+  <div class="flex items-center justify-between px-5 py-4 border-b">
+    <h2 class="text-lg font-bold">Giỏ hàng</h2>
+    <button onclick="closeCart()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+  </div>
+
+  <div id="cart-items" class="flex-1 overflow-y-auto px-5 py-4 space-y-4"></div>
+
+  <div id="cart-empty" class="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M3 3h2l.4 2M7 13h10l4-10H5.4M7 13l-1.4 7h12.8M7 13H5.4M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
+    </svg>
+    <p>Giỏ hàng trống</p>
+  </div>
+
+  <div class="border-t px-5 py-4 space-y-3">
+    <div class="flex justify-between items-center">
+      <span class="text-sm text-gray-500">Tổng cộng</span>
+      <span id="cart-total" class="text-xl font-bold text-gray-900">0₫</span>
+    </div>
+    <button id="checkout-btn" onclick="openCustomerInfo()"
+      class="w-full py-3 rounded-xl font-semibold text-white bg-primary
+             hover:bg-primary-dark transition disabled:opacity-40 disabled:cursor-not-allowed">
+      Đặt hàng
+    </button>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════
+     CUSTOMER INFO MODAL  (US-05)
+════════════════════════════════ -->
+<div id="info-overlay" class="modal-overlay"></div>
+<div id="info-modal" class="modal">
+  <div class="modal-box max-w-md w-full p-6" onclick="event.stopPropagation()">
+    <h2 class="text-xl font-bold mb-1">Thông tin đặt hàng</h2>
+    <p class="text-sm text-gray-400 mb-5">Vui lòng điền đầy đủ thông tin để chúng tôi giao hàng.</p>
+
+    <form id="customer-form" onsubmit="submitCustomerInfo(event)" novalidate class="space-y-4">
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Họ và tên <span class="text-red-500">*</span></label>
+        <input id="input-name" type="text" placeholder="Nguyễn Văn A"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p id="err-name" class="text-red-500 text-xs mt-1 hidden"></p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+        <input id="input-phone" type="tel" placeholder="0xxxxxxxxx"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p id="err-phone" class="text-red-500 text-xs mt-1 hidden"></p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+        <textarea id="input-address" rows="2" placeholder="Số nhà, đường, quận/huyện, tỉnh/thành phố"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"></textarea>
+        <p id="err-address" class="text-red-500 text-xs mt-1 hidden"></p>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeCustomerInfo()"
+          class="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+          Hủy
+        </button>
+        <button type="submit"
+          class="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
+          Xác nhận
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     QR PAYMENT MODAL  (US-06)
+════════════════════════════════ -->
+<div id="qr-overlay" class="modal-overlay"></div>
+<div id="qr-modal" class="modal">
+  <div class="modal-box max-w-sm w-full p-6 text-center" onclick="event.stopPropagation()">
+    <h2 class="text-xl font-bold mb-1">Thanh toán chuyển khoản</h2>
+    <p class="text-xs text-gray-400 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+      QR demo — không kết nối ngân hàng thực
+    </p>
+
+    <!-- IMAGE SLOT: QR Code — replaced by loadSettings() if qrCode is set in admin -->
+    <div id="qr-slot" class="mb-4">
+      <div class="img-placeholder w-48 h-48 mx-auto rounded-xl text-xs">
+        qr-code.png<br/>VietQR / Static QR
+      </div>
+    </div>
+
+    <div class="bg-muted rounded-xl p-4 text-left text-sm space-y-2 mb-4">
+      <div class="flex justify-between">
+        <span class="text-gray-500">Ngân hàng</span>
+        <span id="qr-bank-name" class="font-semibold">Vietcombank</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-500">Số tài khoản</span>
+        <span id="qr-bank-account" class="font-semibold font-mono">1234 5678 9012</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-500">Chủ tài khoản</span>
+        <span id="qr-bank-holder" class="font-semibold">PETFOOD SHOP</span>
+      </div>
+      <div class="flex justify-between border-t pt-2 mt-2">
+        <span class="text-gray-500">Số tiền</span>
+        <span id="qr-total" class="font-bold text-primary text-base"></span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-500">Nội dung CK</span>
+        <span id="qr-content" class="font-semibold text-right text-xs max-w-[180px]"></span>
+      </div>
+    </div>
+
+    <button onclick="closeQR()"
+      class="w-full py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+      Đóng &amp; Quay lại giỏ hàng
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TOASTS
+════════════════════════════════ -->
+<div id="stock-error"
+  class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white
+         px-5 py-3 rounded-xl shadow-xl text-sm font-medium hidden">
+  Một số sản phẩm vừa hết hàng. Vui lòng cập nhật giỏ hàng.
+</div>
+
+<div id="toast-success"
+  class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white
+         px-5 py-3 rounded-xl shadow-xl text-sm font-medium hidden"></div>
+
+
+<!-- ════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════ -->
+<script>
+const API = '/api';
+
+/* ── State ─────────────────────────────────────────────── */
+let PRODUCTS       = [];          // loaded from API
+let cart           = [];          // [{ product, qty }]
+let currentProduct = null;
+let orderInfo      = {};
+let activeCategory = 'all';
+
+/* ── Formatters ─────────────────────────────────────────── */
+const fmt = n => Number(n).toLocaleString('vi-VN') + '₫';
+const CAT = { dog: 'Chó', cat: 'Mèo', other: 'Other' };
+
+/* ════════════════════════════════
+   API HELPERS
+════════════════════════════════ */
+async function apiFetch(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data;
+}
+
+/* ════════════════════════════════
+   PRODUCTS — US-01, US-02
+════════════════════════════════ */
+
+/** Fetch from GET /api/products (with optional ?category=) — US-01 */
+async function loadProducts(category = 'all') {
+  showLoading(true);
+  try {
+    const url = category === 'all' ? '/products' : `/products?category=${category}`;
+    PRODUCTS = await apiFetch(url);
+    renderProducts();
+  } catch (e) {
+    console.error('Failed to load products', e);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(on) {
+  document.getElementById('loading-state').classList.toggle('hidden', !on);
+  document.getElementById('product-grid').classList.toggle('hidden', on);
+  document.getElementById('empty-state').classList.add('hidden');
+}
+
+function renderProducts() {
+  const grid  = document.getElementById('product-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (!PRODUCTS.length) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    empty.classList.add('flex');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  empty.classList.remove('flex');
+
+  grid.innerHTML = PRODUCTS.map(p => {
+    const inStock = p.stock > 0;
+    const badge   = inStock
+      ? `<span class="badge-in text-xs font-semibold px-2 py-0.5 rounded-full">Còn hàng</span>`
+      : `<span class="badge-out text-xs font-semibold px-2 py-0.5 rounded-full">Hết hàng</span>`;
+
+    return `
+      <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden cursor-pointer group"
+           onclick="openDetail(${p.id})">
+        <div class="relative aspect-square overflow-hidden bg-gray-100">
+          ${p.image
+            ? `<img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover" />`
+            : `<div class="img-placeholder w-full h-full" style="min-height:inherit">${p.name}</div>`}
+          <div class="absolute top-2 left-2">${badge}</div>
+        </div>
+        <div class="p-3 flex flex-col gap-1">
+          <p class="text-xs text-gray-400 uppercase tracking-wide">${CAT[p.category] || p.category}</p>
+          <h3 class="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition">${p.name}</h3>
+          <p class="text-xs text-gray-400">${p.weight}</p>
+          <p class="text-base font-bold text-primary mt-1">${fmt(p.price)}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.category-tab').forEach(btn => {
+    const active = btn.dataset.cat === cat;
+    btn.classList.toggle('bg-primary',     active);
+    btn.classList.toggle('text-white',     active);
+    btn.classList.toggle('border-primary', active);
+    btn.classList.toggle('text-gray-600',  !active);
+    btn.classList.toggle('border-gray-200',!active);
+    btn.classList.toggle('bg-transparent', !active);
+  });
+  loadProducts(cat);
+}
+
+/* ── Product Detail Modal — US-02 ──────────────────────── */
+async function openDetail(id) {
+  try {
+    // Fetch fresh detail from API (GET /api/products/:id)
+    const p = await apiFetch(`/products/${id}`);
+    currentProduct = p;
+    const inStock  = p.stock > 0;
+
+    document.getElementById('detail-image').innerHTML = p.image
+      ? `<img src="${p.image}" alt="${p.name}" class="w-full h-64 object-cover rounded-xl" />`
+      : `<div class="img-placeholder w-full rounded-xl" style="height:16rem">${p.name}</div>`;
+
+    document.getElementById('detail-badge').innerHTML = inStock
+      ? `<span class="badge-in text-xs font-semibold px-3 py-1 rounded-full">Còn hàng</span>`
+      : `<span class="badge-out text-xs font-semibold px-3 py-1 rounded-full">Hết hàng</span>`;
+
+    document.getElementById('detail-name').textContent        = p.name;
+    document.getElementById('detail-description').textContent = p.description;
+    document.getElementById('detail-weight').textContent      = p.weight;
+    document.getElementById('detail-stock').textContent       = p.stock + ' sản phẩm';
+    document.getElementById('detail-price').textContent       = fmt(p.price);
+
+    const btn = document.getElementById('detail-add-btn');
+    btn.disabled    = !inStock;
+    btn.textContent = inStock ? 'Thêm vào giỏ' : 'Hết hàng';
+
+    document.getElementById('detail-overlay').classList.add('open');
+    document.getElementById('detail-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch (e) {
+    console.error('Failed to load product detail', e);
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  currentProduct = null;
+}
+
+function addToCartFromDetail() {
+  if (!currentProduct) return;
+  addToCart(currentProduct);
+  closeDetail();
+  openCart();
+}
+
+/* ════════════════════════════════
+   CART — US-03, US-04
+════════════════════════════════ */
+
+/** cart item shape: { product: {...}, qty: Number } */
+function addToCart(product) {
+  if (!product || product.stock === 0) return;                    // AC-03.1
+  const item = cart.find(c => c.product.id === product.id);
+  if (item) {
+    if (item.qty < product.stock) item.qty++;                     // AC-03.5
+  } else {
+    cart.push({ product: { ...product }, qty: 1 });              // AC-03.3
+  }
+  renderCart();
+  updateCartCount();                                              // AC-03.2
+}
+
+function changeQty(productId, delta) {
+  const item = cart.find(c => c.product.id === productId);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    cart = cart.filter(c => c.product.id !== productId);
+  } else if (item.qty > item.product.stock) {
+    item.qty = item.product.stock;                                // AC-03.5
+  }
+  renderCart();
+  updateCartCount();
+}
+
+function removeFromCart(productId) {
+  cart = cart.filter(c => c.product.id !== productId);
+  renderCart();
+  updateCartCount();
+}
+
+function renderCart() {
+  const container   = document.getElementById('cart-items');
+  const emptyEl     = document.getElementById('cart-empty');
+  const checkoutBtn = document.getElementById('checkout-btn');
+
+  if (!cart.length) {
+    container.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    checkoutBtn.disabled = true;                                  // AC-04.4
+    document.getElementById('cart-total').textContent = '0₫';
+    return;
+  }
+
+  container.classList.remove('hidden');
+  emptyEl.classList.add('hidden');
+  checkoutBtn.disabled = false;
+
+  let total = 0;
+  container.innerHTML = cart.map(({ product: p, qty }) => {
+    const lineTotal  = p.price * qty;                             // AC-04.5
+    total           += lineTotal;
+    const maxReached = qty >= p.stock;
+
+    return `
+      <div class="flex gap-3 items-start">
+        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          ${p.image
+            ? `<img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover" />`
+            : `<div class="img-placeholder w-full h-full text-[9px]">${p.name}</div>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold leading-tight truncate">${p.name}</p>
+          <p class="text-xs text-gray-400">${p.weight}</p>
+          <p class="text-sm text-gray-400">Đơn giá: ${fmt(p.price)}</p>
+          <p class="text-sm font-bold text-primary mt-0.5">${fmt(lineTotal)}</p>
+          <div class="flex items-center gap-2 mt-1.5">
+            <button onclick="changeQty(${p.id}, -1)"
+              class="w-7 h-7 rounded-full border flex items-center justify-center text-gray-600 hover:bg-gray-100 text-sm">−</button>
+            <span class="w-6 text-center text-sm font-semibold">${qty}</span>
+            <button onclick="changeQty(${p.id}, 1)"
+              class="w-7 h-7 rounded-full border flex items-center justify-center text-gray-600 hover:bg-gray-100 text-sm
+                     ${maxReached ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}"
+              ${maxReached ? 'disabled' : ''}>+</button>
+            <button onclick="removeFromCart(${p.id})"
+              class="ml-auto text-gray-300 hover:text-red-400 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('cart-total').textContent = fmt(total); // AC-04.2
+}
+
+function updateCartCount() {
+  const count = cart.reduce((s, c) => s + c.qty, 0);
+  const el    = document.getElementById('cart-count');
+  el.textContent = count;
+  el.classList.toggle('hidden', count === 0);
+}
+
+function openCart() {
+  document.getElementById('cart-overlay').classList.add('open');
+  document.getElementById('cart-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderCart();
+}
+
+function closeCart() {
+  document.getElementById('cart-overlay').classList.remove('open');
+  document.getElementById('cart-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════
+   CUSTOMER INFO — US-05
+════════════════════════════════ */
+function openCustomerInfo() {
+  closeCart();
+  document.getElementById('info-overlay').classList.add('open');
+  document.getElementById('info-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCustomerInfo() {
+  document.getElementById('info-overlay').classList.remove('open');
+  document.getElementById('info-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  openCart();
+}
+
+function submitCustomerInfo(e) {
+  e.preventDefault();
+  const name    = document.getElementById('input-name').value.trim();
+  const phone   = document.getElementById('input-phone').value.trim();
+  const address = document.getElementById('input-address').value.trim();
+  let valid     = true;
+
+  const setErr = (id, msg) => {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+    if (msg) valid = false;
+  };
+
+  setErr('err-name',    !name    ? 'Vui lòng nhập họ và tên.'  : '');  // AC-05.2
+  setErr('err-address', !address ? 'Vui lòng nhập địa chỉ giao hàng.' : ''); // AC-05.2
+
+  if (!phone) {
+    setErr('err-phone', 'Vui lòng nhập số điện thoại.');                // AC-05.2
+  } else if (!/^0\d{9}$/.test(phone)) {
+    setErr('err-phone', 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.'); // AC-05.3
+  } else {
+    setErr('err-phone', '');
+  }
+
+  if (!valid) return;                                                    // AC-05.6
+
+  orderInfo = { name, phone, address };
+
+  document.getElementById('info-overlay').classList.remove('open');
+  document.getElementById('info-modal').classList.remove('open');
+
+  submitOrder();                                                         // → US-06 AC-06.1
+}
+
+/* ════════════════════════════════
+   ORDER + STOCK CHECK — US-06
+   POST /api/orders
+════════════════════════════════ */
+async function submitOrder() {
+  const items = cart.map(({ product, qty }) => ({
+    productId: product.id,
+    quantity:  qty,
+  }));
+
+  try {
+    const order = await apiFetch('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ customer: orderInfo, items }),
+    });
+
+    // AC-06.7: total from server must match cart total
+    openQR(order);
+
+  } catch (err) {
+    // AC-06.3: out-of-stock items detected by server
+    if (err.unavailable) {
+      // Remove unavailable items from cart
+      err.unavailable.forEach(u => {
+        cart = cart.filter(c => c.product.id !== u.productId);
+      });
+      updateCartCount();
+      renderCart();
+      openCart();
+      showToast('stock-error', 4000);
+    } else {
+      console.error('Order failed', err);
+      showToast('stock-error', 4000);
+      openCart();
+    }
+  }
+}
+
+/* ════════════════════════════════
+   QR MODAL — US-06
+════════════════════════════════ */
+function openQR(order) {
+  // AC-06.7: use total from server response
+  document.getElementById('qr-total').textContent   = fmt(order.total);
+  document.getElementById('qr-content').textContent =
+    `PETFOOD ${order.customer.name.toUpperCase()} ${order.customer.phone}`;
+
+  document.getElementById('qr-overlay').classList.add('open');
+  document.getElementById('qr-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeQR() {
+  document.getElementById('qr-overlay').classList.remove('open');
+  document.getElementById('qr-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  openCart();                                                     // AC-06.5
+}
+
+/* ════════════════════════════════
+   TOAST
+════════════════════════════════ */
+function showToast(id, duration = 3000) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), duration);
+}
+
+/* ════════════════════════════════
+   SETTINGS — load logo, banner, bank info
+════════════════════════════════ */
+async function loadSettings() {
+  try {
+    const s = await apiFetch('/settings');
+
+    // Logo — circular, fits inside the round slot
+    if (s.logo) {
+      const logoSlot = document.getElementById('logo-slot');
+      logoSlot.innerHTML = `<img src="${s.logo}" alt="${s.shopName || 'Logo'}"
+        class="w-full h-full object-cover rounded-full" />`;
+    }
+    if (s.shopName) document.title = s.shopName;
+
+    // Banner
+    if (s.banner) {
+      const bannerSlot = document.getElementById('banner-slot');
+      bannerSlot.innerHTML = `<img src="${s.banner}" alt="Banner" class="w-full h-56 object-cover rounded-2xl" />`;
+    }
+
+    // Bank info for QR modal
+    if (s.bankName)    document.getElementById('qr-bank-name').textContent    = s.bankName;
+    if (s.bankAccount) document.getElementById('qr-bank-account').textContent = s.bankAccount;
+    if (s.bankHolder)  document.getElementById('qr-bank-holder').textContent  = s.bankHolder;
+
+    // QR Code — show real QR image if set
+    const qrSlot = document.getElementById('qr-slot');
+    if (s.qrCode) {
+      qrSlot.innerHTML = `<img src="${s.qrCode}" alt="QR thanh toán" class="w-48 h-48 object-contain mx-auto rounded-xl" />`;
+    }
+    // else keep the placeholder visible
+
+    return s;
+  } catch (e) {
+    console.error('Failed to load settings', e);
+    return {};
+  }
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+loadSettings();
+loadProducts();    // US-01: fetch all products on page load
+renderCart();
+</script>
+</body>
+</html>

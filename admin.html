@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — PetFood Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary:        '#E8622A',
+            'primary-dark': '#C84E1A',
+            surface:        '#FFF8F4',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .img-placeholder {
+      background: #e5e7eb;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #9ca3af; font-size: 0.65rem;
+      font-family: monospace; text-align: center; gap: 2px;
+    }
+    .img-placeholder::before {
+      content: '';
+      display: block; width: 24px; height: 24px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' stroke-width='1.5'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5' stroke-width='1.5'/%3E%3Cpath stroke-width='1.5' d='M21 15l-5-5L5 21'/%3E%3C/svg%3E") center/contain no-repeat;
+    }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 40; display: none;
+    }
+    .modal-overlay.open { display: block; }
+    .modal {
+      position: fixed; inset: 0; z-index: 50;
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 1rem;
+      width: 100%; max-height: 90vh; overflow-y: auto;
+      position: relative; box-shadow: 0 25px 50px rgba(0,0,0,.25);
+    }
+    .badge-in  { background:#dcfce7; color:#15803d; }
+    .badge-out { background:#f3f4f6; color:#6b7280; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:99px; }
+
+    /* ── Crop overlay ── */
+    #crop-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.8);
+      z-index: 100; display: none; align-items: center; justify-content: center;
+    }
+    #crop-modal-overlay.open { display: flex; }
+    #crop-container {
+      position: relative; overflow: hidden; cursor: crosshair;
+      user-select: none; max-width: 90vw; max-height: 70vh;
+    }
+    #crop-container img { display: block; max-width: 90vw; max-height: 70vh; }
+    #crop-rect {
+      position: absolute; border: 2px dashed #fff;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.5);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+<!-- ── HEADER ── -->
+<header class="bg-primary shadow-md sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+      </svg>
+      <h1 class="text-white font-bold text-lg">PetFood Admin</h1>
+    </div>
+    <a href="/" class="text-white/80 hover:text-white text-sm flex items-center gap-1 transition">
+      &larr; Về trang khách hàng
+    </a>
+  </div>
+</header>
+
+<!-- ── MAIN ── -->
+<main class="max-w-7xl mx-auto px-4 py-8">
+
+  <!-- ── Tab Nav ── -->
+  <div class="flex gap-1 mb-8 bg-white rounded-xl p-1 shadow-sm w-fit">
+    <button onclick="switchTab('products')" id="tab-products"
+      class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition bg-primary text-white">
+      Sản phẩm
+    </button>
+    <button onclick="switchTab('settings')" id="tab-settings"
+      class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-gray-500 hover:text-gray-800">
+      Cài đặt trang
+    </button>
+  </div>
+
+  <!-- ══════════════════ TAB: PRODUCTS ══════════════════ -->
+  <div id="panel-products">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold">Quản lý sản phẩm</h2>
+      <p class="text-sm text-gray-400 mt-0.5">Thêm, chỉnh sửa, xoá sản phẩm và cập nhật tồn kho.</p>
+    </div>
+    <button onclick="openForm(null)"
+      class="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+      + Thêm sản phẩm
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+      <p class="text-3xl font-bold text-primary" id="stat-total">—</p>
+      <p class="text-xs text-gray-400 mt-1">Tổng sản phẩm</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+      <p class="text-3xl font-bold text-green-500" id="stat-in">—</p>
+      <p class="text-xs text-gray-400 mt-1">Còn hàng</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+      <p class="text-3xl font-bold text-red-400" id="stat-out">—</p>
+      <p class="text-xs text-gray-400 mt-1">Hết hàng</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+      <p class="text-3xl font-bold text-orange-400" id="stat-low">—</p>
+      <p class="text-xs text-gray-400 mt-1">Sắp hết (&le;10)</p>
+    </div>
+  </div>
+
+  <!-- Product Table -->
+  <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium w-10">#</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Sản phẩm</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Danh mục</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Giá</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Tồn kho</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Trạng thái</th>
+            <th class="text-right px-4 py-3 text-gray-500 font-medium">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="product-table-body">
+          <tr>
+            <td colspan="7" class="text-center py-12 text-gray-300">
+              <div class="animate-pulse">Đang tải...</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /panel-products -->
+
+  <!-- ══════════════════ TAB: SETTINGS ══════════════════ -->
+  <div id="panel-settings" class="hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Logo & Banner -->
+      <div class="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+        <h3 class="font-bold text-lg">Logo & Banner</h3>
+
+        <!-- Logo -->
+        <div>
+          <label class="block text-sm font-medium mb-3">Logo</label>
+          <div class="flex items-center gap-5">
+
+            <!-- Circle preview -->
+            <div id="preview-logo"
+              class="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex-shrink-0
+                     flex items-center justify-center border-2 border-dashed border-gray-300
+                     relative group cursor-pointer"
+              ondragover="event.preventDefault()" ondrop="handleDrop(event,'logo-file','preview-logo')">
+              <span class="text-gray-300 text-xs text-center leading-tight px-1">Chưa có logo</span>
+              <!-- hover overlay -->
+              <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center
+                          opacity-0 group-hover:opacity-100 transition"
+                   onclick="document.getElementById('logo-file').click()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+              </div>
+              <input id="logo-file" type="file" accept="image/*" class="hidden"
+                onchange="handleSettingFileSelect(this,'preview-logo','logo-status','logo')" />
+            </div>
+
+            <div class="flex-1 space-y-2">
+              <p class="text-xs text-gray-500">Kéo ảnh vào vòng tròn hoặc click để chọn file.<br/>Dùng ảnh vuông, nền trong suốt (PNG) để đẹp nhất.</p>
+              <input id="logo-url" type="text" placeholder="Hoặc nhập đường dẫn: images/logo.png"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                oninput="previewSettingUrl(this.value,'preview-logo','logo')" />
+              <p id="logo-status" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner -->
+        <div>
+          <label class="block text-sm font-medium mb-3">Banner (trang chủ)</label>
+
+          <!-- Drop zone -->
+          <div id="banner-dropzone"
+            class="w-full h-40 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50
+                   flex flex-col items-center justify-center gap-2 cursor-pointer
+                   hover:border-primary hover:bg-orange-50 transition relative overflow-hidden group"
+            ondragover="event.preventDefault(); this.classList.add('border-primary','bg-orange-50')"
+            ondragleave="this.classList.remove('border-primary','bg-orange-50')"
+            ondrop="handleBannerDrop(event); this.classList.remove('border-primary','bg-orange-50')"
+            onclick="document.getElementById('banner-file').click()">
+
+            <div id="preview-banner" class="absolute inset-0 hidden"></div>
+
+            <div id="banner-hint" class="flex flex-col items-center gap-1 text-gray-400 z-10">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              <span class="text-sm font-medium">Kéo thả ảnh vào đây</span>
+              <span class="text-xs">hoặc click để chọn file — sau đó crop</span>
+              <span class="text-xs text-gray-300">Tối ưu: 1400×400px (tỉ lệ ~3.5:1)</span>
+            </div>
+
+            <div id="banner-edit-overlay"
+              class="absolute inset-0 bg-black/40 hidden items-center justify-center gap-2 z-20">
+              <span class="text-white text-sm font-medium">Thay / Crop lại</span>
+            </div>
+
+            <input id="banner-file" type="file" accept="image/*" class="hidden"
+              onchange="openBannerCrop(this)" />
+          </div>
+
+          <div class="mt-2 space-y-1">
+            <input id="banner-url" type="text" placeholder="Hoặc nhập đường dẫn: images/hero-banner.jpg"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              oninput="previewSettingUrl(this.value,'preview-banner','banner')" />
+            <p id="banner-status" class="text-xs text-gray-400"></p>
+          </div>
+        </div>
+
+        <!-- QR Code -->
+        <div>
+          <label class="block text-sm font-medium mb-3">QR thanh toán</label>
+          <div class="flex items-start gap-4">
+
+            <!-- Square QR preview — click hoặc drag để upload -->
+            <div id="preview-qr"
+              class="w-32 h-32 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0
+                     flex items-center justify-center border-2 border-dashed border-gray-300
+                     relative group cursor-pointer"
+              ondragover="event.preventDefault()"
+              ondrop="handleDrop(event,'qr-file','preview-qr')"
+              onclick="document.getElementById('qr-file').click()">
+              <span class="text-gray-300 text-xs text-center px-2 leading-relaxed">Kéo thả<br/>hoặc click</span>
+              <div class="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center
+                          opacity-0 group-hover:opacity-100 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+              </div>
+              <input id="qr-file" type="file" accept="image/*" class="hidden"
+                onchange="handleSettingFileSelect(this,'preview-qr','qr-status','qr')" />
+            </div>
+
+            <div class="flex-1 space-y-2">
+              <p class="text-xs text-gray-500">Upload ảnh QR chuyển khoản.<br/>
+                Hiển thị trong popup thanh toán khi khách đặt hàng.</p>
+              <input id="qr-url" type="text" placeholder="Hoặc nhập đường dẫn: images/qr.png"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                oninput="previewSettingUrl(this.value,'preview-qr','qr')" />
+              <p id="qr-status" class="text-xs text-gray-400"></p>
+            </div>
+          </div>
+        </div>
+
+      <!-- Bank info + Shop name -->
+      <div class="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+        <h3 class="font-bold text-lg">Thông tin thanh toán</h3>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Tên cửa hàng</label>
+          <input id="setting-shopName" type="text" placeholder="PetFood Shop"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Ngân hàng</label>
+          <input id="setting-bankName" type="text" placeholder="Vietcombank"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Số tài khoản</label>
+          <input id="setting-bankAccount" type="text" placeholder="1234 5678 9012"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Tên chủ tài khoản</label>
+          <input id="setting-bankHolder" type="text" placeholder="PETFOOD SHOP"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+
+        <button onclick="saveSettings()"
+          class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
+          Lưu tất cả cài đặt
+        </button>
+      </div>
+
+    </div>
+  </div><!-- /panel-settings -->
+
+</main>
+
+
+<!-- ══════════════════════════════════════
+     ADD / EDIT MODAL
+══════════════════════════════════════ -->
+<div id="form-overlay" class="modal-overlay" onclick="closeForm()"></div>
+<div id="form-modal" class="modal">
+  <div class="modal-box max-w-lg w-full" onclick="event.stopPropagation()">
+
+    <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b">
+      <h3 id="form-title" class="text-lg font-bold">Thêm sản phẩm</h3>
+      <button onclick="closeForm()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+    </div>
+
+    <form id="product-form" onsubmit="saveProduct(event)" novalidate class="px-6 py-5 space-y-4">
+      <input type="hidden" id="form-id" value="" />
+
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Tên sản phẩm <span class="text-red-500">*</span></label>
+        <input id="form-name" type="text" placeholder="VD: Hạt mèo Whiskas Tuna"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p id="form-err-name" class="text-red-500 text-xs mt-1 hidden"></p>
+      </div>
+
+      <!-- Category -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Danh mục <span class="text-red-500">*</span></label>
+        <select id="form-category"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="dog">Chó</option>
+          <option value="cat">Mèo</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <!-- Image — file upload OR text path -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Ảnh sản phẩm</label>
+
+        <!-- File upload (POST /api/upload) -->
+        <div class="flex items-center gap-3 mb-2">
+          <label class="cursor-pointer flex items-center gap-2 px-3 py-2 border rounded-lg text-sm text-gray-600
+                         hover:border-primary hover:text-primary transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Tải ảnh lên
+            <input id="file-upload" type="file" accept="image/*" class="hidden" onchange="handleFileUpload(this)" />
+          </label>
+          <span id="upload-status" class="text-xs text-gray-400"></span>
+        </div>
+
+        <!-- Or enter path manually -->
+        <input id="form-image" type="text" placeholder='Hoặc nhập đường dẫn: images/ten-anh.jpg'
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          oninput="updateImagePreview()" />
+        <div id="form-image-preview" class="mt-2 w-24 h-24 rounded-lg overflow-hidden bg-gray-100 hidden"></div>
+        <p class="text-xs text-gray-400 mt-1">Ảnh phải nằm trong thư mục <code>images/</code>.</p>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Mô tả</label>
+        <textarea id="form-description" rows="2"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"></textarea>
+      </div>
+
+      <!-- Weight + Price -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Trọng lượng <span class="text-red-500">*</span></label>
+          <input id="form-weight" type="text" placeholder="VD: 1.2kg"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p id="form-err-weight" class="text-red-500 text-xs mt-1 hidden"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Giá (VNĐ) <span class="text-red-500">*</span></label>
+          <input id="form-price" type="number" min="0" placeholder="VD: 175000"
+            class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p id="form-err-price" class="text-red-500 text-xs mt-1 hidden"></p>
+        </div>
+      </div>
+
+      <!-- Stock -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Tồn kho <span class="text-red-500">*</span></label>
+        <input id="form-stock" type="number" min="0" placeholder="VD: 50"
+          class="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p id="form-err-stock" class="text-red-500 text-xs mt-1 hidden"></p>
+        <p class="text-xs text-gray-400 mt-1">Stock = 0 → sản phẩm tự động hiển thị "Hết hàng".</p>
+      </div>
+
+      <!-- Submit spinner overlay -->
+      <div id="form-loading" class="hidden absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl z-10">
+        <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <div class="flex gap-3 pt-2 border-t">
+        <button type="button" onclick="closeForm()"
+          class="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+          Hủy
+        </button>
+        <button id="form-submit-btn" type="submit"
+          class="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition
+                 disabled:opacity-50 disabled:cursor-not-allowed">
+          Lưu sản phẩm
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     DELETE CONFIRM MODAL
+══════════════════════════════════════ -->
+<div id="del-overlay" class="modal-overlay" onclick="closeDelete()"></div>
+<div id="del-modal" class="modal">
+  <div class="modal-box max-w-sm w-full p-6 text-center" onclick="event.stopPropagation()">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-red-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+    <h3 class="text-lg font-bold mb-2">Xác nhận xoá</h3>
+    <p id="del-product-name" class="text-sm text-gray-500 mb-5"></p>
+    <div class="flex gap-3">
+      <button onclick="closeDelete()"
+        class="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+        Hủy
+      </button>
+      <button id="del-confirm-btn" onclick="confirmDelete()"
+        class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition
+               disabled:opacity-50 disabled:cursor-not-allowed">
+        Xoá
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     BANNER CROP MODAL
+══════════════════════════════════════ -->
+<div id="crop-modal-overlay">
+  <div class="bg-gray-900 rounded-2xl p-5 flex flex-col gap-4 w-full max-w-2xl mx-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-white font-bold text-base">Crop banner (kéo để chọn vùng)</h3>
+      <button onclick="cancelCrop()" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+    </div>
+
+    <div id="crop-container" class="rounded-xl overflow-hidden select-none">
+      <img id="crop-img" src="" alt="" draggable="false" />
+      <div id="crop-rect" style="display:none"></div>
+    </div>
+
+    <p class="text-gray-400 text-xs text-center">
+      Nhấn và kéo trên ảnh để chọn vùng crop. Tỉ lệ tự do — hoặc để nguyên dùng toàn bộ ảnh.
+    </p>
+
+    <div class="flex gap-3">
+      <button onclick="useFull()"
+        class="flex-1 py-2.5 rounded-xl border border-gray-600 text-gray-300 text-sm font-semibold hover:bg-gray-700 transition">
+        Dùng toàn bộ ảnh
+      </button>
+      <button onclick="applyCrop()"
+        class="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
+        Crop &amp; Dùng vùng này
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOAST
+══════════════════════════════════════ -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium hidden transition-all"></div>
+
+
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
+<script>
+const API = '/api';
+
+/* ── State ── */
+let PRODUCTS       = [];
+let deleteTargetId = null;
+
+/* ── Formatters ── */
+const fmt       = n => Number(n).toLocaleString('vi-VN') + '₫';
+const CAT_LABEL = { dog: 'Chó', cat: 'Mèo', other: 'Other' };
+
+/* ════════════════════════════════
+   API HELPERS
+════════════════════════════════ */
+async function apiFetch(path, options = {}) {
+  const res  = await fetch(API + path, options);
+  const data = await res.json();
+  if (!res.ok) throw data;
+  return data;
+}
+
+/* ════════════════════════════════
+   LOAD + RENDER TABLE  (US-07 AC-07.1, AC-07.6)
+════════════════════════════════ */
+async function loadProducts() {
+  try {
+    PRODUCTS = await apiFetch('/products');
+    renderTable();
+  } catch (e) {
+    console.error('Failed to load products', e);
+    showToast('Không thể tải danh sách sản phẩm.', 'red');
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('product-table-body');
+
+  if (!PRODUCTS.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-12 text-gray-400">Chưa có sản phẩm nào.</td></tr>`;
+    updateStats();
+    return;
+  }
+
+  tbody.innerHTML = PRODUCTS.map((p, i) => {
+    const inStock  = p.stock > 0;
+    const lowStock = p.stock > 0 && p.stock <= 10;
+
+    return `
+      <tr class="border-b hover:bg-gray-50 transition">
+        <td class="px-4 py-3 text-gray-400 text-xs">${i + 1}</td>
+
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              ${p.image
+                ? `<img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover"
+                        onerror="this.parentElement.innerHTML='<div class=img-placeholder style=width:40px;height:40px></div>'" />`
+                : `<div class="img-placeholder w-full h-full text-[8px]">img</div>`}
+            </div>
+            <div>
+              <p class="font-semibold text-sm">${p.name}</p>
+              <p class="text-xs text-gray-400 line-clamp-1 max-w-xs">${p.description}</p>
+            </div>
+          </div>
+        </td>
+
+        <td class="px-4 py-3 text-sm">${CAT_LABEL[p.category] || p.category}</td>
+        <td class="px-4 py-3 text-sm font-semibold text-primary">${fmt(p.price)}</td>
+
+        <td class="px-4 py-3 text-sm">
+          <span class="${lowStock ? 'text-orange-500 font-bold' : ''}">${p.stock}</span>
+          ${lowStock ? '<span class="text-orange-400 text-xs ml-1">sắp hết</span>' : ''}
+        </td>
+
+        <td class="px-4 py-3">
+          ${inStock
+            ? `<span class="badge-in text-xs font-semibold px-2 py-0.5 rounded-full">Còn hàng</span>`
+            : `<span class="badge-out text-xs font-semibold px-2 py-0.5 rounded-full">Hết hàng</span>`}
+        </td>
+
+        <td class="px-4 py-3 text-right">
+          <button onclick="openForm(${p.id})"
+            class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:border-primary hover:text-primary transition mr-2">
+            Sửa
+          </button>
+          <button onclick="openDelete(${p.id})"
+            class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:border-red-400 hover:text-red-500 transition">
+            Xoá
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = PRODUCTS.length;
+  document.getElementById('stat-in').textContent    = PRODUCTS.filter(p => p.stock > 0).length;
+  document.getElementById('stat-out').textContent   = PRODUCTS.filter(p => p.stock === 0).length;
+  document.getElementById('stat-low').textContent   = PRODUCTS.filter(p => p.stock > 0 && p.stock <= 10).length;
+}
+
+/* ════════════════════════════════
+   ADD / EDIT FORM
+   US-07 AC-07.2 (add), AC-07.3 (edit)
+════════════════════════════════ */
+function openForm(id) {
+  const p = id ? PRODUCTS.find(x => x.id === id) : null;
+
+  document.getElementById('form-title').textContent   = p ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm';
+  document.getElementById('form-id').value            = p ? p.id : '';
+  document.getElementById('form-name').value          = p ? p.name        : '';
+  document.getElementById('form-category').value      = p ? p.category    : 'dog';
+  document.getElementById('form-image').value         = p ? p.image       : '';
+  document.getElementById('form-description').value   = p ? p.description : '';
+  document.getElementById('form-weight').value        = p ? p.weight      : '';
+  document.getElementById('form-price').value         = p ? p.price       : '';
+  document.getElementById('form-stock').value         = p ? p.stock       : '';
+  document.getElementById('upload-status').textContent = '';
+  document.getElementById('file-upload').value        = '';
+
+  // Clear all error messages
+  ['name','weight','price','stock'].forEach(f => {
+    document.getElementById(`form-err-${f}`).classList.add('hidden');
+  });
+
+  updateImagePreview();
+  document.getElementById('form-overlay').classList.add('open');
+  document.getElementById('form-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeForm() {
+  document.getElementById('form-overlay').classList.remove('open');
+  document.getElementById('form-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* Image preview */
+function updateImagePreview() {
+  const src     = document.getElementById('form-image').value.trim();
+  const preview = document.getElementById('form-image-preview');
+  if (src) {
+    preview.innerHTML = `<img src="${src}" class="w-full h-full object-cover"
+      onerror="this.parentElement.innerHTML='<div class=img-placeholder style=width:96px;height:96px>?</div>'" />`;
+    preview.classList.remove('hidden');
+  } else {
+    preview.classList.add('hidden');
+  }
+}
+
+/* File upload via POST /api/upload */
+async function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('upload-status');
+  statusEl.textContent = 'Đang tải lên...';
+
+  const formData = new FormData();
+const qrFile = document.getElementById('qr-file').files[0];
+
+if (qrFile) {
+  formData.append('qrFile', qrFile);
+}
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw data;
+
+    document.getElementById('form-image').value = data.url;
+    updateImagePreview();
+    statusEl.textContent = 'Tải lên thành công.';
+  } catch (err) {
+    statusEl.textContent = 'Lỗi tải lên: ' + (err.error || 'Thử lại.');
+    console.error(err);
+  }
+}
+
+/* Save: POST (add) or PUT (edit) */
+async function saveProduct(e) {
+  e.preventDefault();
+
+  const id     = document.getElementById('form-id').value;
+  const name   = document.getElementById('form-name').value.trim();
+  const weight = document.getElementById('form-weight').value.trim();
+  const price  = document.getElementById('form-price').value;
+  const stock  = document.getElementById('form-stock').value;
+
+  let valid = true;
+  const setErr = (field, msg) => {
+    const el = document.getElementById(`form-err-${field}`);
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+    if (msg) valid = false;
+  };
+
+  setErr('name',   !name   ? 'Vui lòng nhập tên sản phẩm.' : '');
+  setErr('weight', !weight ? 'Vui lòng nhập trọng lượng.'  : '');
+  setErr('price',  (price === '' || Number(price) < 0) ? 'Giá không hợp lệ.' : '');
+  setErr('stock',  (stock === '' || Number(stock) < 0) ? 'Tồn kho không hợp lệ.' : '');
+
+  if (!valid) return;
+
+  // Build JSON body
+  const payload = {
+    name,
+    category:    document.getElementById('form-category').value,
+    image:       document.getElementById('form-image').value.trim(),
+    description: document.getElementById('form-description').value.trim(),
+    weight,
+    price:  Number(price),
+    stock:  Number(stock),
+  };
+
+  const submitBtn = document.getElementById('form-submit-btn');
+  submitBtn.disabled = true;
+
+  try {
+    if (id) {
+      // US-07 AC-07.3 — PUT /api/products/:id
+      const updated = await apiFetch(`/products/${id}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      // Update local cache
+      const idx = PRODUCTS.findIndex(p => p.id === updated.id);
+      if (idx !== -1) PRODUCTS[idx] = updated;
+      showToast('Đã cập nhật sản phẩm.', 'green');
+    } else {
+      // US-07 AC-07.2 — POST /api/products
+      const created = await apiFetch('/products', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      PRODUCTS.push(created);
+      showToast('Đã thêm sản phẩm mới.', 'green');
+    }
+
+    closeForm();
+    renderTable();  // AC-07.6: reflects immediately
+  } catch (err) {
+    const msg = err.errors ? err.errors.join(', ') : 'Lỗi lưu sản phẩm.';
+    showToast(msg, 'red');
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+/* ════════════════════════════════
+   DELETE  (US-07 AC-07.4)
+════════════════════════════════ */
+function openDelete(id) {
+  deleteTargetId = id;
+  const p = PRODUCTS.find(x => x.id === id);
+  document.getElementById('del-product-name').textContent =
+    `Bạn có chắc muốn xoá "${p?.name}"? Hành động này không thể hoàn tác.`;
+  document.getElementById('del-overlay').classList.add('open');
+  document.getElementById('del-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDelete() {
+  document.getElementById('del-overlay').classList.remove('open');
+  document.getElementById('del-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  deleteTargetId = null;
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  const btn = document.getElementById('del-confirm-btn');
+  btn.disabled = true;
+
+  try {
+    // US-07 AC-07.4 — DELETE /api/products/:id
+    await apiFetch(`/products/${deleteTargetId}`, { method: 'DELETE' });
+    PRODUCTS = PRODUCTS.filter(p => p.id !== deleteTargetId);
+    closeDelete();
+    renderTable();  // AC-07.6
+    showToast('Đã xoá sản phẩm.', 'red');
+  } catch (err) {
+    showToast('Lỗi xoá sản phẩm.', 'red');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ════════════════════════════════
+   TOAST
+════════════════════════════════ */
+function showToast(msg, color = 'green') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = [
+    'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium transition-all',
+    color === 'green' ? 'bg-green-500 text-white' : 'bg-red-500 text-white',
+  ].join(' ');
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+/* ════════════════════════════════
+   TABS
+════════════════════════════════ */
+function switchTab(tab) {
+  document.getElementById('panel-products').classList.toggle('hidden', tab !== 'products');
+  document.getElementById('panel-settings').classList.toggle('hidden', tab !== 'settings');
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const active = btn.id === `tab-${tab}`;
+    btn.classList.toggle('bg-primary',    active);
+    btn.classList.toggle('text-white',    active);
+    btn.classList.toggle('text-gray-500', !active);
+  });
+
+  if (tab === 'settings') loadSettings();
+}
+
+/* ════════════════════════════════
+   SETTINGS
+════════════════════════════════ */
+let currentSettings = {};
+
+async function loadSettings() {
+  try {
+    currentSettings = await apiFetch('/settings');
+    populateSettingsForm(currentSettings);
+  } catch (e) {
+    console.error('Failed to load settings', e);
+  }
+}
+
+function populateSettingsForm(s) {
+  document.getElementById('setting-shopName').value    = s.shopName    || '';
+  document.getElementById('setting-bankName').value    = s.bankName    || '';
+  document.getElementById('setting-bankAccount').value = s.bankAccount || '';
+  document.getElementById('setting-bankHolder').value  = s.bankHolder  || '';
+  document.getElementById('logo-url').value            = s.logo        || '';
+  document.getElementById('banner-url').value          = s.banner      || '';
+  document.getElementById('qr-url').value              = s.qrCode      || '';
+
+  renderLogoPreview(s.logo    || '');
+  renderBannerPreview(s.banner || '');
+  renderQrPreview(s.qrCode    || '');
+}
+
+/* ── Logo preview (circle) ── */
+function renderLogoPreview(src) {
+  const el = document.getElementById('preview-logo');
+  if (src) {
+    // Keep existing children (hover overlay + input), just set background
+    el.style.backgroundImage  = `url('${src}')`;
+    el.style.backgroundSize   = 'cover';
+    el.style.backgroundPosition = 'center';
+    // Hide placeholder text
+    const placeholder = el.querySelector('span');
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    el.style.backgroundImage = '';
+    const placeholder = el.querySelector('span');
+    if (placeholder) placeholder.style.display = '';
+  }
+}
+
+/* ── Banner preview (fills dropzone) ── */
+function renderBannerPreview(src) {
+  const previewDiv  = document.getElementById('preview-banner');
+  const hintDiv     = document.getElementById('banner-hint');
+  const editOverlay = document.getElementById('banner-edit-overlay');
+
+  if (src) {
+    previewDiv.innerHTML = `<img src="${src}" class="w-full h-full object-cover"
+      onerror="renderBannerPreview('')" />`;
+    previewDiv.classList.remove('hidden');
+    hintDiv.classList.add('hidden');
+    editOverlay.classList.remove('hidden');
+    editOverlay.classList.add('flex');
+  } else {
+    previewDiv.innerHTML = '';
+    previewDiv.classList.add('hidden');
+    hintDiv.classList.remove('hidden');
+    editOverlay.classList.add('hidden');
+    editOverlay.classList.remove('flex');
+  }
+}
+
+/* ── Called when user types URL directly ── */
+function previewSettingUrl(val, previewId, type) {
+  if (type === 'logo')   renderLogoPreview(val.trim());
+  if (type === 'banner') renderBannerPreview(val.trim());
+  if (type === 'qr')     renderQrPreview(val.trim());
+}
+
+/* ── QR preview (square) ── */
+function renderQrPreview(src) {
+  const el = document.getElementById('preview-qr');
+  if (src) {
+    el.style.backgroundImage    = `url('${src}')`;
+    el.style.backgroundSize     = 'contain';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundRepeat   = 'no-repeat';
+    const ph = el.querySelector('span');
+    if (ph) ph.style.display = 'none';
+  } else {
+    el.style.backgroundImage = '';
+    const ph = el.querySelector('span');
+    if (ph) ph.style.display = '';
+  }
+}
+
+/* ════════════════════════════════
+   BANNER CROP
+════════════════════════════════ */
+let _cropFile        = null;   // original File object
+let _cropDataUrl     = null;   // full image dataURL
+let _cropStart       = null;   // {x,y} in image coords
+let _cropEnd         = null;
+let _isDragging      = false;
+let _imgNaturalW     = 0;
+let _imgNaturalH     = 0;
+
+function openBannerCrop(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _cropFile = file;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    _cropDataUrl = e.target.result;
+    const img    = document.getElementById('crop-img');
+    img.src      = _cropDataUrl;
+    img.onload   = () => {
+      _imgNaturalW = img.naturalWidth;
+      _imgNaturalH = img.naturalHeight;
+      _cropStart   = null;
+      _cropEnd     = null;
+      hideCropRect();
+    };
+    document.getElementById('crop-modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleBannerDrop(event) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  // Fake the input
+  const dt   = new DataTransfer();
+  dt.items.add(file);
+  const inp  = document.getElementById('banner-file');
+  inp.files  = dt.files;
+  openBannerCrop(inp);
+}
+
+// Mouse events on crop container
+const cropContainer = () => document.getElementById('crop-container');
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cc = cropContainer();
+  cc.addEventListener('mousedown', e => {
+    _isDragging = true;
+    _cropStart  = getImgCoords(e);
+    _cropEnd    = _cropStart;
+    updateCropRect();
+  });
+  cc.addEventListener('mousemove', e => {
+    if (!_isDragging) return;
+    _cropEnd = getImgCoords(e);
+    updateCropRect();
+  });
+  document.addEventListener('mouseup', () => { _isDragging = false; });
+
+  // Touch support
+  cc.addEventListener('touchstart', e => {
+    _isDragging = true;
+    _cropStart  = getImgCoords(e.touches[0]);
+    _cropEnd    = _cropStart;
+    updateCropRect();
+  }, { passive: true });
+  cc.addEventListener('touchmove', e => {
+    if (!_isDragging) return;
+    _cropEnd = getImgCoords(e.touches[0]);
+    updateCropRect();
+    e.preventDefault();
+  }, { passive: false });
+  cc.addEventListener('touchend', () => { _isDragging = false; });
+});
+
+function getImgCoords(e) {
+  const img    = document.getElementById('crop-img');
+  const rect   = img.getBoundingClientRect();
+  const scaleX = img.naturalWidth  / rect.width;
+  const scaleY = img.naturalHeight / rect.height;
+  return {
+    x: Math.max(0, Math.min(img.naturalWidth,  (e.clientX - rect.left)  * scaleX)),
+    y: Math.max(0, Math.min(img.naturalHeight, (e.clientY - rect.top)   * scaleY)),
+  };
+}
+
+function updateCropRect() {
+  if (!_cropStart || !_cropEnd) return;
+  const img    = document.getElementById('crop-img');
+  const rect   = img.getBoundingClientRect();
+  const scaleX = rect.width  / img.naturalWidth;
+  const scaleY = rect.height / img.naturalHeight;
+
+  const x1 = Math.min(_cropStart.x, _cropEnd.x) * scaleX;
+  const y1 = Math.min(_cropStart.y, _cropEnd.y) * scaleY;
+  const w  = Math.abs(_cropEnd.x - _cropStart.x) * scaleX;
+  const h  = Math.abs(_cropEnd.y - _cropStart.y) * scaleY;
+
+  const el = document.getElementById('crop-rect');
+  el.style.display = 'block';
+  el.style.left    = x1 + 'px';
+  el.style.top     = y1 + 'px';
+  el.style.width   = w  + 'px';
+  el.style.height  = h  + 'px';
+}
+
+function hideCropRect() {
+  document.getElementById('crop-rect').style.display = 'none';
+}
+
+function cancelCrop() {
+  document.getElementById('crop-modal-overlay').classList.remove('open');
+  document.getElementById('banner-file').value = '';
+  document.body.style.overflow = '';
+  _cropFile = null;
+}
+
+function useFull() {
+  // Use entire image without cropping
+  renderBannerPreview(_cropDataUrl);
+  document.getElementById('banner-url').value = '';
+  _pendingBannerDataUrl = _cropDataUrl;
+  _pendingBannerFile    = _cropFile;
+  document.getElementById('banner-status').textContent = 'Chờ lưu...';
+  closeCropModal();
+}
+
+function applyCrop() {
+  if (!_cropStart || !_cropEnd ||
+      Math.abs(_cropEnd.x - _cropStart.x) < 5 ||
+      Math.abs(_cropEnd.y - _cropStart.y) < 5) {
+    // No meaningful selection — use full
+    useFull(); return;
+  }
+
+  const canvas = document.createElement('canvas');
+  const x      = Math.round(Math.min(_cropStart.x, _cropEnd.x));
+  const y      = Math.round(Math.min(_cropStart.y, _cropEnd.y));
+  const w      = Math.round(Math.abs(_cropEnd.x - _cropStart.x));
+  const h      = Math.round(Math.abs(_cropEnd.y - _cropStart.y));
+
+  canvas.width  = w;
+  canvas.height = h;
+  const ctx     = canvas.getContext('2d');
+  const img     = document.getElementById('crop-img');
+  ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+
+  const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  renderBannerPreview(croppedDataUrl);
+  document.getElementById('banner-url').value = '';
+  _pendingBannerDataUrl = croppedDataUrl;
+  // Convert dataURL → File for upload
+  dataUrlToFile(croppedDataUrl, 'banner-cropped.jpg').then(f => {
+    _pendingBannerFile = f;
+  });
+  document.getElementById('banner-status').textContent = 'Chờ lưu...';
+  closeCropModal();
+}
+
+function closeCropModal() {
+  document.getElementById('crop-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _cropFile = null;
+}
+
+async function dataUrlToFile(dataUrl, filename) {
+  const res  = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type });
+}
+
+// Pending banner data (set after crop, consumed on save)
+let _pendingBannerDataUrl = null;
+let _pendingBannerFile    = null;
+
+/* ── Drag-and-drop handler ── */
+function handleDrop(event, inputId, previewId) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+
+  const input = document.getElementById(inputId);
+  // Assign to file input (DataTransfer trick)
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+
+  // Trigger the same handler as manual file select
+  const type      = inputId === 'logo-file' ? 'logo' : 'banner';
+  const statusId  = type + '-status';
+  handleSettingFileSelect(input, previewId, statusId, type);
+}
+
+/* ── File selected (click or drop) ── */
+function handleSettingFileSelect(input, previewId, statusId, type) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Show local preview instantly before upload
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (type === 'logo')   renderLogoPreview(e.target.result);
+    if (type === 'banner') renderBannerPreview(e.target.result);
+  };
+  reader.readAsDataURL(file);
+
+  const statusEl = document.getElementById(statusId);
+  if (statusEl) statusEl.textContent = 'Chờ lưu...';
+}
+
+/* ── Save all settings (upload files then PUT) ── */
+async function saveSettings() {
+  const logoFile = document.getElementById('logo-file').files[0];
+  const qrFile   = document.getElementById('qr-file').files[0];
+
+  const logoStatusEl   = document.getElementById('logo-status');
+  const bannerStatusEl = document.getElementById('banner-status');
+  const qrStatusEl     = document.getElementById('qr-status');
+
+  let logoUrl   = document.getElementById('logo-url').value.trim();
+  let bannerUrl = document.getElementById('banner-url').value.trim();
+  let qrUrl     = document.getElementById('qr-url').value.trim();
+
+  // Upload logo
+  if (logoFile) {
+    if (logoStatusEl) logoStatusEl.textContent = 'Đang tải lên...';
+    const uploaded = await uploadFile(logoFile);
+    if (uploaded) {
+      logoUrl = uploaded;
+      document.getElementById('logo-url').value = logoUrl;
+      if (logoStatusEl) logoStatusEl.textContent = 'Tải lên thành công.';
+    } else {
+      if (logoStatusEl) logoStatusEl.textContent = 'Lỗi tải logo.';
+      return;
+    }
+  }
+
+  // Upload banner — use cropped file if available, otherwise URL
+  if (_pendingBannerFile) {
+    if (bannerStatusEl) bannerStatusEl.textContent = 'Đang tải lên...';
+    const uploaded = await uploadFile(_pendingBannerFile);
+    if (uploaded) {
+      bannerUrl = uploaded;
+      document.getElementById('banner-url').value = bannerUrl;
+      _pendingBannerFile    = null;
+      _pendingBannerDataUrl = null;
+      if (bannerStatusEl) bannerStatusEl.textContent = 'Tải lên thành công.';
+    } else {
+      if (bannerStatusEl) bannerStatusEl.textContent = 'Lỗi tải banner.';
+      return;
+    }
+  }
+
+  // Upload QR
+  if (qrFile) {
+    if (qrStatusEl) qrStatusEl.textContent = 'Đang tải lên...';
+    const uploaded = await uploadFile(qrFile);
+    if (uploaded) {
+      qrUrl = uploaded;
+      document.getElementById('qr-url').value = qrUrl;
+      if (qrStatusEl) qrStatusEl.textContent = 'Tải lên thành công.';
+    } else {
+      if (qrStatusEl) qrStatusEl.textContent = 'Lỗi tải QR.';
+      return;
+    }
+  }
+
+  // Build FormData
+  const fd = new FormData();
+  fd.append('shopName',    document.getElementById('setting-shopName').value.trim());
+  fd.append('bankName',    document.getElementById('setting-bankName').value.trim());
+  fd.append('bankAccount', document.getElementById('setting-bankAccount').value.trim());
+  fd.append('bankHolder',  document.getElementById('setting-bankHolder').value.trim());
+  fd.append('logo',   logoUrl);
+  fd.append('banner', bannerUrl);
+  fd.append('qrCode', qrUrl);
+
+  try {
+    const res     = await fetch('/api/settings', { method: 'PUT', body: fd });
+    const updated = await res.json();
+    if (!res.ok) throw updated;
+
+    currentSettings = updated;
+    document.getElementById('logo-file').value = '';
+    document.getElementById('qr-file').value   = '';
+    document.getElementById('banner-file').value = '';
+    showToast('Đã lưu cài đặt trang.', 'green');
+  } catch (e) {
+    showToast('Lỗi lưu cài đặt.', 'red');
+    console.error(e);
+  }
+}
+
+/* ── Generic file uploader ── */
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('imageFile', file);
+  try {
+    const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw data;
+    return data.url;
+  } catch (err) {
+    console.error('Upload error', err);
+    return null;
+  }
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+loadProducts();
+</script>
+</body>
+</html>
